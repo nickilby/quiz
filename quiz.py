@@ -12,6 +12,19 @@ DATA_FILE = "/tmp/quiz_data.pkl"  # Ensure the data file is also stored in a wri
 # Ensure directories exist
 os.makedirs(MUSIC_FOLDER, exist_ok=True)
 
+# Function to clear the cache (reset state)
+def clear_cache():
+    # Delete the .pkl file to reset quiz data
+    if os.path.exists(DATA_FILE):
+        os.remove(DATA_FILE)
+    
+    # Delete all music files in the MUSIC_FOLDER
+    music_files = glob.glob(f"{MUSIC_FOLDER}/*")
+    for music_file in music_files:
+        os.remove(music_file)
+
+    st.success("Cache cleared! The app has been reset to its default state.")
+
 # Load or initialize quiz data
 if os.path.exists(DATA_FILE):
     with open(DATA_FILE, "rb") as f:
@@ -26,6 +39,17 @@ else:
 
 # App title
 st.title("Pub Quiz App")
+
+# Clear Cache button
+if st.button("Clear Cache"):
+    clear_cache()
+    # Reinitialize the quiz_data if cache is cleared
+    quiz_data = {
+        "team_names": {},
+        "team_scores": {},
+        "num_teams": 1,
+        "num_rounds": 5
+    }
 
 # Tabs for the quiz sections
 tabs = st.tabs(["Music Round", "Team Setup", "Team Scores", "Summary"])

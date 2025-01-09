@@ -1,0 +1,16 @@
+# Ignore mypy cache
+.mypy_cache/
+
+# Ignore Python cache files
+__pycache__/
+*.pyc
+*.pyo
+
+# Ignore pytest cache
+.pytest_cache/
+
+# Ignore coverage reports
+.coverage
+
+# Ignore log files
+*.log
