@@ -8,6 +8,10 @@ import pickle
 MUSIC_FOLDER = "/tmp/music"  # Use a folder relative to the app container
 DATA_FILE = "tmp/quiz_data.pkl"
 
+# Ensure the music folder exists
+if not os.path.exists(MUSIC_FOLDER):
+    os.makedirs(MUSIC_FOLDER)
+
 # Initialize session state for quiz data
 if "quiz_data" not in st.session_state:
     st.session_state.quiz_data = {
