@@ -21,7 +21,7 @@ if "quiz_data" not in st.session_state:
         "num_rounds": 5
     }
 
-# Reset the quiz data when the reset button is pressed
+# Reset the quiz data and music tracks when the reset button is pressed
 if st.button("Reset Quiz"):
     st.session_state.quiz_data = {
         "team_names": {},
@@ -29,7 +29,10 @@ if st.button("Reset Quiz"):
         "num_teams": 1,
         "num_rounds": 5
     }
-    st.success("Quiz reset!")
+    # Delete all music files in the MUSIC_FOLDER
+    for music_file in glob.glob(f"{MUSIC_FOLDER}/*"):
+        os.remove(music_file)
+    st.success("Quiz reset and music files cleared!")
 
 # App title
 st.title("Pub Quiz App")
@@ -110,4 +113,3 @@ with tabs[3]:
     if sorted_scores:
         winner = st.session_state.quiz_data["team_names"][sorted_scores[0][0]]
         st.success(f"The winner is: {winner}!")
-
