@@ -3,53 +3,32 @@ import re
 import streamlit as st
 import glob
 import pickle
-from PIL import Image
 
-# Set a writable directory for music in the container
-MUSIC_FOLDER = "/tmp/quiz_music"  # Use /tmp or another directory with write permissions
-DATA_FILE = "/tmp/quiz_data.pkl"  # Ensure the data file is also stored in a writable location
+# Directories for uploaded content
+MUSIC_FOLDER = "/app/music"  # Use a folder relative to the app container
+DATA_FILE = "quiz_data.pkl"
 
-# Ensure directories exist
-os.makedirs(MUSIC_FOLDER, exist_ok=True)
-
-# Function to clear the cache (reset state)
-def clear_cache():
-    # Delete the .pkl file to reset quiz data
-    if os.path.exists(DATA_FILE):
-        os.remove(DATA_FILE)
-    
-    # Delete all music files in the MUSIC_FOLDER
-    music_files = glob.glob(f"{MUSIC_FOLDER}/*")
-    for music_file in music_files:
-        os.remove(music_file)
-
-    st.success("Cache cleared! The app has been reset to its default state.")
-
-# Load or initialize quiz data
-if os.path.exists(DATA_FILE):
-    with open(DATA_FILE, "rb") as f:
-        quiz_data = pickle.load(f)
-else:
-    quiz_data = {
+# Initialize session state for quiz data
+if "quiz_data" not in st.session_state:
+    st.session_state.quiz_data = {
         "team_names": {},
         "team_scores": {},
         "num_teams": 1,
         "num_rounds": 5
     }
+
+# Reset the quiz data when the reset button is pressed
+if st.button("Reset Quiz"):
+    st.session_state.quiz_data = {
+        "team_names": {},
+        "team_scores": {},
+        "num_teams": 1,
+        "num_rounds": 5
+    }
+    st.success("Quiz reset!")
 
 # App title
 st.title("Pub Quiz App")
-
-# Clear Cache button
-if st.button("Clear Cache"):
-    clear_cache()
-    # Reinitialize the quiz_data if cache is cleared
-    quiz_data = {
-        "team_names": {},
-        "team_scores": {},
-        "num_teams": 1,
-        "num_rounds": 5
-    }
 
 # Tabs for the quiz sections
 tabs = st.tabs(["Music Round", "Team Setup", "Team Scores", "Summary"])
@@ -63,27 +42,19 @@ with tabs[0]:
     if uploaded_music:
         # Save the uploaded music files
         for music_file in uploaded_music:
-            music_file_path = os.path.join(MUSIC_FOLDER, music_file.name)  # Use os.path.join for path creation
-            with open(music_file_path, "wb") as f:
+            file_path = os.path.join(MUSIC_FOLDER, music_file.name)
+            with open(file_path, "wb") as f:
                 f.write(music_file.read())
         st.success("Music files uploaded successfully!")
 
     # Get a list of music files in the folder
     music_files = glob.glob(f"{MUSIC_FOLDER}/*")
 
-    # Function to extract the numeric part of the filename for sorting
-    def extract_number(filename):
-        match = re.search(r'(\d+)', filename)
-        return int(match.group(1)) if match else float('inf')  # Return inf if no number is found
-
-    # Sort the music files numerically based on the number in the filename
-    music_files_sorted = sorted(music_files, key=lambda x: extract_number(os.path.basename(x)))
-
-    # Display uploaded music files in numerical order
+    # Sort and display uploaded music files in numerical order
+    music_files_sorted = sorted(music_files, key=lambda x: int(re.search(r'(\d+)', os.path.basename(x)).group(1) if re.search(r'(\d+)', os.path.basename(x)) else float('inf')))
     if music_files_sorted:
         st.write("### Uploaded Music Tracks (Sorted Numerically)")
         for music_file in music_files_sorted:
-            # Display the file name with its order
             file_name = os.path.basename(music_file)
             st.write(f"{file_name}")  # Show the filename
             st.audio(music_file, format="audio/mp3")
@@ -91,51 +62,48 @@ with tabs[0]:
 # Team Setup tab
 with tabs[1]:
     st.header("Team Setup")
-    num_teams = st.number_input("Number of Teams", min_value=1, value=quiz_data["num_teams"], step=1, key="num_teams")
-    quiz_data["num_teams"] = num_teams  # Update the number of teams
+    num_teams = st.number_input("Number of Teams", min_value=1, value=st.session_state.quiz_data["num_teams"], step=1, key="num_teams")
+    st.session_state.quiz_data["num_teams"] = num_teams  # Update the number of teams
 
     # Collect team names
     for i in range(1, num_teams + 1):
-        team_name = st.text_input(f"Enter name for Team {i}", value=quiz_data["team_names"].get(i, f"Team {i}"), key=f"team_name_{i}")
-        quiz_data["team_names"][i] = team_name  # Store team names
+        team_name = st.text_input(f"Enter name for Team {i}", value=st.session_state.quiz_data["team_names"].get(i, f"Team {i}"), key=f"team_name_{i}")
+        st.session_state.quiz_data["team_names"][i] = team_name  # Store team names
 
 # Team Scores tab
 with tabs[2]:
     st.header("Team Scores")
-    num_rounds = st.number_input("Number of Rounds", min_value=1, value=quiz_data["num_rounds"], step=1, key="num_rounds")
-    quiz_data["num_rounds"] = num_rounds  # Update the number of rounds
+    num_rounds = st.number_input("Number of Rounds", min_value=1, value=st.session_state.quiz_data["num_rounds"], step=1, key="num_rounds")
+    st.session_state.quiz_data["num_rounds"] = num_rounds  # Update the number of rounds
 
     # Initialize team scores
-    for team_id in quiz_data["team_names"].keys():
-        if team_id not in quiz_data["team_scores"]:
-            quiz_data["team_scores"][team_id] = {}
+    for team_id in st.session_state.quiz_data["team_names"].keys():
+        if team_id not in st.session_state.quiz_data["team_scores"]:
+            st.session_state.quiz_data["team_scores"][team_id] = {}
 
     for round_num in range(1, num_rounds + 1):
         st.subheader(f"Scores for Round {round_num}")
-        for team_id, team_name in quiz_data["team_names"].items():
+        for team_id, team_name in st.session_state.quiz_data["team_names"].items():
             score_key = f"team_{team_id}_round_{round_num}_score"
-            score = st.number_input(f"Score for {team_name} in Round {round_num}", min_value=0, value=quiz_data["team_scores"].get(team_id, {}).get(round_num, 0), step=1, key=score_key)
-            quiz_data["team_scores"][team_id][round_num] = score  # Update scores
+            score = st.number_input(f"Score for {team_name} in Round {round_num}", min_value=0, value=st.session_state.quiz_data["team_scores"].get(team_id, {}).get(round_num, 0), step=1, key=score_key)
+            st.session_state.quiz_data["team_scores"][team_id][round_num] = score  # Update scores
 
 # Summary tab
-with tabs[3]:  # Corrected to tabs[3] for the "Summary" tab
+with tabs[3]:
     st.header("Quiz Summary")
 
     # Calculate total scores
     total_scores = {}
-    for team_id, scores in quiz_data["team_scores"].items():
+    for team_id, scores in st.session_state.quiz_data["team_scores"].items():
         total_scores[team_id] = sum(scores.values())
 
     # Display scores
     sorted_scores = sorted(total_scores.items(), key=lambda x: x[1], reverse=True)
     for team_id, score in sorted_scores:
-        st.write(f"{quiz_data['team_names'][team_id]}: {score} points")
+        st.write(f"{st.session_state.quiz_data['team_names'][team_id]}: {score} points")
 
     # Highlight the winner
     if sorted_scores:
-        winner = quiz_data["team_names"][sorted_scores[0][0]]
+        winner = st.session_state.quiz_data["team_names"][sorted_scores[0][0]]
         st.success(f"The winner is: {winner}!")
 
-# Save progress to file
-with open(DATA_FILE, "wb") as f:
-    pickle.dump(quiz_data, f)
