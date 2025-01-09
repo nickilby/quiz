@@ -5,8 +5,8 @@ import glob
 import pickle
 
 # Directories for uploaded content
-MUSIC_FOLDER = "/app/music"  # Use a folder relative to the app container
-DATA_FILE = "quiz_data.pkl"
+MUSIC_FOLDER = "/tmp/music"  # Use a folder relative to the app container
+DATA_FILE = "tmp/quiz_data.pkl"
 
 # Initialize session state for quiz data
 if "quiz_data" not in st.session_state:
