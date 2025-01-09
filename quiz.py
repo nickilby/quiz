@@ -1,25 +1,43 @@
 import os
-import re
+import pickle
 import streamlit as st
 import glob
-import pickle
+import re
 
 # Directories for uploaded content
 MUSIC_FOLDER = "/tmp/music"  # Use a folder relative to the app container
 DATA_FILE = "tmp/quiz_data.pkl"
 
+# Ensure the directory for quiz data exists
+quiz_data_dir = os.path.dirname(DATA_FILE)
+if not os.path.exists(quiz_data_dir):
+    os.makedirs(quiz_data_dir)
+
+
 # Ensure the music folder exists
 if not os.path.exists(MUSIC_FOLDER):
     os.makedirs(MUSIC_FOLDER)
 
-# Initialize session state for quiz data
-if "quiz_data" not in st.session_state:
-    st.session_state.quiz_data = {
+# Load quiz data if it exists
+def load_quiz_data():
+    if os.path.exists(DATA_FILE):
+        with open(DATA_FILE, "rb") as f:
+            return pickle.load(f)
+    return {
         "team_names": {},
         "team_scores": {},
         "num_teams": 1,
         "num_rounds": 5
     }
+
+# Save quiz data to a file
+def save_quiz_data():
+    with open(DATA_FILE, "wb") as f:
+        pickle.dump(st.session_state.quiz_data, f)
+
+# Initialize session state for quiz data
+if "quiz_data" not in st.session_state:
+    st.session_state.quiz_data = load_quiz_data()
 
 # Reset the quiz data and music tracks when the reset button is pressed
 if st.button("Reset Quiz"):
@@ -64,7 +82,7 @@ with tabs[0]:
         for music_file in music_files_sorted:
             file_name = os.path.basename(music_file)
             st.write(f"{file_name}")  # Show the filename
-            st.audio(music_file, format="audio/mp3")
+            st.audio(str(music_file), format="audio/mp3")  # Pass file path as string
 
 # Team Setup tab
 with tabs[1]:
@@ -76,6 +94,8 @@ with tabs[1]:
     for i in range(1, num_teams + 1):
         team_name = st.text_input(f"Enter name for Team {i}", value=st.session_state.quiz_data["team_names"].get(i, f"Team {i}"), key=f"team_name_{i}")
         st.session_state.quiz_data["team_names"][i] = team_name  # Store team names
+
+    save_quiz_data()  # Save the quiz data to file whenever it changes
 
 # Team Scores tab
 with tabs[2]:
@@ -94,6 +114,8 @@ with tabs[2]:
             score_key = f"team_{team_id}_round_{round_num}_score"
             score = st.number_input(f"Score for {team_name} in Round {round_num}", min_value=0, value=st.session_state.quiz_data["team_scores"].get(team_id, {}).get(round_num, 0), step=1, key=score_key)
             st.session_state.quiz_data["team_scores"][team_id][round_num] = score  # Update scores
+
+    save_quiz_data()  # Save the quiz data to file whenever it changes
 
 # Summary tab
 with tabs[3]:
